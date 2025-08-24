@@ -2,37 +2,11 @@
 
 This cookbook provides a streamlined workflow for creating Laravel Docker projects using a template-based approach.
 
-## For Team Members - Initial Setup
-
-When someone asks you to create a new Laravel project, connect to the cookbooks repository at:
-**https://github.com/AlboradaIT/project-cookbooks**
-
-Follow these instructions to use the Laravel Docker template.
-
 ### Prerequisites
 
 1. **Docker & Docker Compose** installed
 2. **Git** configured
 3. **GitHub CLI** (optional, for repository creation)
-
-### One-Time Traefik Setup
-
-Before creating projects, set up Traefik reverse proxy (shared across all projects):
-
-```bash
-# Clone the cookbooks repository
-git clone https://github.com/AlboradaIT/project-cookbooks.git
-cd project-cookbooks/laravel-docker-template
-
-# Copy Traefik configuration
-mkdir -p ~/shared-services/traefik
-cp .template/docker/reverse-proxy/traefik/docker-compose.yml ~/shared-services/traefik/
-
-# Start Traefik
-cd ~/shared-services/traefik
-docker network create traefik
-docker-compose up -d
-```
 
 ## Creating a New Laravel Project
 
@@ -47,7 +21,7 @@ When a user requests a Laravel project:
    - Database: [snake_case - NO _db suffix]
    - Domain: [kebab-case.local]
    - Password: [Generated]
-3. **Ask for confirmation**: "Would you like to change anything? (y/n)"
+3. **Ask for confirmation**: "Would you like to change anything?"
 4. **Handle changes if needed**
 5. **Execute setup script** with all parameters
 
@@ -66,8 +40,8 @@ Agent:
 | Domain | housing-management-system.local |
 | Password | [Generated] |
 
-"Would you like to change anything? (y/n): "
-User: "n"
+"Would you like to change anything?: "
+User: "no"
 Agent: "Setting up your project..."
 ```
 
@@ -76,7 +50,7 @@ Agent: "Setting up your project..."
 The agent calls the setup script with parameters:
 
 ```bash
-cd /path/to/project-cookbooks/laravel-docker-template
+cd /path/to/project-cookbooks/laravel-web-app
 ./setup.sh "Housing Management System" "housing_management_system" "housing-management-system.local" "optional-password"
 ```
 

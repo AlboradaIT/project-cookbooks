@@ -19,8 +19,7 @@ Cookbooks are step-by-step guides that include:
 
 ## Available Cookbooks
 
-- [Laravel Web Application](./laravel-web-app.md) - Standard Laravel web application with Docker
-- [Laravel API](./laravel-api.md) - API-only Laravel project with microservice setup
+- [Laravel Web Application](./laravel-web-app/cookbook.md) - Standard Laravel web application with Docker
 
 ## Team Workflow
 
@@ -28,7 +27,7 @@ Cookbooks are step-by-step guides that include:
 ```bash
 # When requesting a new project from an AI agent:
 "Create a new Laravel web application following the AlboradaIT cookbook at:
-https://github.com/AlboradaIT/project-cookbooks/blob/main/laravel-web-app.md"
+https://github.com/AlboradaIT/project-cookbooks/blob/main/laravel-web-app/cookbook.md
 ```
 
 ### For AI Agents
