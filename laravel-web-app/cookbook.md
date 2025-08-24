@@ -23,7 +23,11 @@ When a user requests a Laravel project:
    - Password: [Generated]
 3. **Ask for confirmation**: "Would you like to change anything?"
 4. **Handle changes if needed**
-5. **Execute setup script** with all parameters
+5. **Clone cookbook repository** to temporary location
+6. **Execute setup script** with all parameters from temporary location
+7. **Clean up** temporary cookbook files
+
+**CRITICAL:** Never modify the user's existing cookbook repository. Always clone to /tmp/ first.
 
 ### Example Interaction
 
@@ -47,12 +51,23 @@ Agent: "Setting up your project..."
 
 ### Setup Script Execution
 
-The agent calls the setup script with parameters:
+The agent should clone the cookbook repository to a temporary location and run the setup script:
 
 ```bash
-cd /path/to/project-cookbooks/laravel-web-app
+# Clone cookbook repository to temporary location
+git clone https://github.com/AlboradaIT/project-cookbooks.git /tmp/project-cookbooks
+
+# Navigate to the Laravel template
+cd /tmp/project-cookbooks/laravel-web-app
+
+# Run setup script with parameters
 ./setup.sh "Housing Management System" "housing_management_system" "housing-management-system.local" "optional-password"
+
+# Clean up temporary files
+rm -rf /tmp/project-cookbooks
 ```
+
+**Important:** Never run the setup script from the user's existing cookbooks directory. Always clone to a temporary location first.
 
 ## Setup Script Details
 
