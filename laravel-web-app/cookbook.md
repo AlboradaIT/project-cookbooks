@@ -23,11 +23,12 @@ When a user requests a Laravel project:
    - Password: [Generated]
 3. **Ask for confirmation**: "Would you like to change anything?"
 4. **Handle changes if needed**
-5. **Clone cookbook repository** to temporary location
-6. **Execute setup script** with all parameters from temporary location
-7. **Clean up** temporary cookbook files
+5. **Create safe temporary directory** using `mktemp -d`
+6. **Clone cookbook repository** to the temporary location
+7. **Execute setup script** with all parameters from temporary location
+8. **Clean up** temporary cookbook files
 
-**CRITICAL:** Never modify the user's existing cookbook repository. Always clone to /tmp/ first.
+**CRITICAL:** Never modify the user's existing cookbook repository. Always use `mktemp -d` to create a unique temporary directory to avoid conflicts.
 
 ### Example Interaction
 
@@ -51,23 +52,34 @@ Agent: "Setting up your project..."
 
 ### Setup Script Execution
 
-The agent should clone the cookbook repository to a temporary location and run the setup script:
+The agent should create a safe temporary directory, clone the cookbook repository there, and run the setup script:
 
 ```bash
-# Clone cookbook repository to temporary location
-git clone https://github.com/AlboradaIT/project-cookbooks.git /tmp/project-cookbooks
+# Create a unique temporary directory to avoid conflicts
+TEMP_DIR=$(mktemp -d)
+echo "Using temporary directory: $TEMP_DIR"
 
-# Navigate to the Laravel template
-cd /tmp/project-cookbooks/laravel-web-app
+# Clone cookbook repository to the temporary location
+git clone https://github.com/AlboradaIT/project-cookbooks.git "$TEMP_DIR/project-cookbooks"
 
-# Run setup script with parameters
+# Navigate to the target project directory (where the new project will be created)
+cd ~/projects
+
+# Navigate to the Laravel template in temporary location
+cd "$TEMP_DIR/project-cookbooks/laravel-web-app"
+
+# Run setup script with parameters (this will create the project in ~/projects)
 ./setup.sh "Housing Management System" "housing_management_system" "housing-management-system.local" "optional-password"
 
 # Clean up temporary files
-rm -rf /tmp/project-cookbooks
+rm -rf "$TEMP_DIR"
 ```
 
-**Important:** Never run the setup script from the user's existing cookbooks directory. Always clone to a temporary location first.
+**CRITICAL SAFETY:** 
+- Always use `mktemp -d` to create a unique temporary directory
+- Never clone directly to `/tmp/project-cookbooks` as it could conflict with existing folders
+- Never run the setup script from the user's existing cookbooks directory
+- The script creates the project in the current directory (~/projects), not in the temporary location
 
 ## Setup Script Details
 
