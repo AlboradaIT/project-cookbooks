@@ -52,7 +52,8 @@ services:
       - 'traefik.http.routers.nginx.rule=Host(`{{APP_DOMAIN}}`)'
       - 'traefik.http.routers.nginx.entrypoints=web,websecure'
       - 'traefik.http.routers.nginx.tls=true'
-      - 'traefik.http.routers.nginx.tls.certresolver=letsencrypt'
+      # For production with real domains, uncomment the next line and configure Let's Encrypt in Traefik
+      # - 'traefik.http.routers.nginx.tls.certresolver=letsencrypt'
       - 'traefik.http.services.nginx.loadbalancer.server.port=80'
 
   mysql:

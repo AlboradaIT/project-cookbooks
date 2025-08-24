@@ -23,12 +23,9 @@ When a user requests a Laravel project:
    - Password: [Generated]
 3. **Ask for confirmation**: "Would you like to change anything?"
 4. **Handle changes if needed**
-5. **Create safe temporary directory** using `mktemp -d`
-6. **Clone cookbook repository** to the temporary location
-7. **Execute setup script** with all parameters from temporary location
-8. **Clean up** temporary cookbook files
+5. **Execute create-project script** with all parameters via curl
 
-**CRITICAL:** Always use `mktemp -d` to create a unique temporary directory to avoid conflicts with existing folders.
+**STREAMLINED:** Single curl command handles everything - no manual cloning or multiple confirmations needed!
 
 ### Example Interaction
 
@@ -52,38 +49,18 @@ Agent: "Setting up your project..."
 
 ### Setup Script Execution
 
-The agent should clone the repo and execute the script
+The agent should run the create-project script directly via curl:
 
 ```bash
-# Create a unique temporary directory to avoid conflicts
-TEMP_DIR=$(mktemp -d)
-echo "Using temporary directory: $TEMP_DIR"
-
-# Clone cookbook repository to the temporary location
-git clone https://github.com/AlboradaIT/project-cookbooks.git "$TEMP_DIR/project-cookbooks"
-
-# Navigate to the target project directory (where the new project will be created)
-cd ~/projects
-
-# Navigate to the Laravel template in temporary location
-cd "$TEMP_DIR/project-cookbooks/laravel-web-app"
-
-# Make setup script executable
-chmod +x setup.sh
-
-# Run setup script with parameters (this will create the project in ~/projects)
-./setup.sh "Housing Management System" "housing_management_system" "housing-management-system.local" "optional-password"
-
-# Clean up temporary files
-rm -rf "$TEMP_DIR"
+curl -fsSL https://raw.githubusercontent.com/AlboradaIT/project-cookbooks/main/laravel-web-app/create-project.sh | bash -s -- "Housing Management System" "housing_management_system" "housing-management-system.local" "optional-password"
 ```
 
-**AGENT-MANAGED PROCESS:** 
-- Agent creates safe temporary directory using `mktemp -d`
-- Agent clones the cookbook repository to temporary location
-- Agent executes the setup script from temporary location
-- Script creates the project in ~/projects directory
-- Agent cleans up temporary files after completion
+**STREAMLINED PROCESS:** 
+- Single command execution - no multiple confirmations needed
+- Script handles repository cloning internally  
+- Laravel is pre-installed during project creation
+- Containers start immediately with Laravel ready
+- Sail commands available from the start
 
 ## Setup Script Details
 

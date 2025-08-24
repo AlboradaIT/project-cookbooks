@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Laravel Docker Template Standalone Setup Script
-# This script clones the cookbook repository and sets up a new Laravel project
-# Usage: ./standalone-setup.sh [project-name] [db-name] [domain] [db-password]
+# Laravel Docker Project Creation Script
+# This script can be run directly via curl without cloning the repository
+# Usage: curl -fsSL https://raw.githubusercontent.com/AlboradaIT/project-cookbooks/main/create-project.sh | bash -s -- "Project Name" [db-name] [domain] [password]
 
 set -e
 
@@ -33,8 +33,8 @@ print_error() {
 # Check if project name is provided
 if [ -z "$1" ]; then
     print_error "Project name is required!"
-    echo "Usage: $0 <project-name> [db-name] [domain] [db-password]"
-    echo "Example: $0 'My Awesome App' my_awesome_db my-awesome-app.local mypassword123"
+    echo "Usage: curl -fsSL https://raw.githubusercontent.com/AlboradaIT/project-cookbooks/main/create-project.sh | bash -s -- \"Project Name\" [db-name] [domain] [password]"
+    echo "Example: curl -fsSL https://raw.githubusercontent.com/AlboradaIT/project-cookbooks/main/create-project.sh | bash -s -- \"My Awesome App\" my_awesome_db my-awesome-app.local mypassword123"
     exit 1
 fi
 
@@ -89,10 +89,6 @@ cp -r "$TEMPLATE_DIR/".* . 2>/dev/null || true
 # Make scripts executable
 chmod +x docker/runtimes/8.2/start-container.sh
 
-# Initialize new git repository
-git init
-print_success "Git repository initialized"
-
 print_status "Configuring environment variables..."
 
 # Update .env file
@@ -118,6 +114,40 @@ else
     exit 1
 fi
 
+# Pre-install Laravel using the project's container image
+print_status "Building container image for Laravel installation..."
+docker build -t "temp-laravel-installer-$KEBAB_NAME" -f docker/runtimes/8.2/Dockerfile .
+
+print_status "Installing Laravel using project container..."
+docker run --rm \
+    --entrypoint="" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    -e WWWUSER=$(id -u) \
+    -e WWWGROUP=$(id -g) \
+    "temp-laravel-installer-$KEBAB_NAME" \
+    bash -c "
+        # Install Laravel in temp location
+        composer create-project laravel/laravel /tmp/laravel --prefer-dist &&
+        
+        # Copy Laravel files to working directory, preserving .env
+        cp .env /tmp/laravel/.env &&
+        cp -r /tmp/laravel/. /var/www/html/ &&
+        
+        # Set correct ownership
+        chown -R \$WWWUSER:\$WWWGROUP /var/www/html &&
+        
+        # Generate application key
+        php artisan key:generate
+    "
+
+# Clean up temp image
+docker rmi "temp-laravel-installer-$KEBAB_NAME"
+
+# Initialize new git repository
+git init
+print_success "Git repository initialized"
+
 # Clean up temporary files
 print_status "Cleaning up temporary files..."
 rm -rf "$TEMP_DIR"
@@ -137,11 +167,16 @@ fi
 
 print_success "Project setup complete!"
 echo
+print_status "Laravel has been pre-installed and is ready to use!"
 print_status "Next steps:"
 echo "1. cd $PROJECTS_DIR/$KEBAB_NAME"
 echo "2. docker-compose up -d"
-echo "3. Wait for Laravel installation to complete"
-echo "4. Open https://$APP_DOMAIN in your browser"
+echo "3. Open https://$APP_DOMAIN in your browser"
+echo
+print_status "You can now use 'sail' commands immediately:"
+echo "sail artisan --version"
+echo "sail tinker"
+echo "sail test"
 echo
 print_status "Optional: Create GitHub repository"
 echo "gh repo create AlboradaIT/$KEBAB_NAME --private"

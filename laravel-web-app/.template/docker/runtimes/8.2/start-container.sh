@@ -11,72 +11,22 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}Starting Laravel container...${NC}"
 
-# Check if Laravel is installed
-if [ ! -f "/var/www/html/artisan" ]; then
-    echo -e "${YELLOW}Laravel not found. Installing latest Laravel...${NC}"
-    
-    # Backup existing .env file if it exists
-    if [ -f "/var/www/html/.env" ]; then
-        echo -e "${YELLOW}Backing up existing .env file...${NC}"
-        cp /var/www/html/.env /var/www/html/.env.backup
-    fi
-    
-    # Create Laravel project as sail user
-    gosu sail composer create-project laravel/laravel /tmp/laravel-temp --prefer-dist
-    
-    # Move Laravel files to working directory
-    cp -r /tmp/laravel-temp/. /var/www/html/
-    rm -rf /tmp/laravel-temp
-    
-    # Restore backed up .env file if it existed
-    if [ -f "/var/www/html/.env.backup" ]; then
-        echo -e "${YELLOW}Restoring original .env file...${NC}"
-        mv /var/www/html/.env.backup /var/www/html/.env
-    fi
-    
-    # Fix ownership
-    chown -R sail:sail /var/www/html
-    
-    echo -e "${GREEN}Laravel installed successfully!${NC}"
-    
-    # Generate application key if not set
-    if [ -f "/var/www/html/.env" ] && ! grep -q "APP_KEY=base64:" /var/www/html/.env; then
-        echo -e "${YELLOW}Generating application key...${NC}"
-        cd /var/www/html && gosu sail php artisan key:generate
-    fi
-else
-    echo -e "${GREEN}Laravel installation found.${NC}"
+# Set the user id to the host user id if provided
+if [ ! -z "$WWWUSER" ]; then
+    usermod -u $WWWUSER sail
 fi
+
+# Get the home directory of the 'sail' user
+SAIL_HOME=$(getent passwd sail | cut -d: -f6)
+
+# Ensure the Composer's global directory exists and has the correct permissions
+gosu sail mkdir -p $SAIL_HOME/.composer
+chmod -R ugo+rw $SAIL_HOME/.composer
 
 # Change to Laravel directory
 cd /var/www/html
 
-# Install/update dependencies if composer.json exists
-if [ -f "composer.json" ]; then
-    echo -e "${YELLOW}Installing/updating Composer dependencies...${NC}"
-    gosu sail composer install --optimize-autoloader
-fi
-
-# Wait for database to be ready and run migrations
-if [ -f "artisan" ]; then
-    echo -e "${YELLOW}Waiting for database connection...${NC}"
-    # Wait up to 30 seconds for database
-    for i in {1..30}; do
-        if gosu sail php artisan migrate:status >/dev/null 2>&1; then
-            echo -e "${GREEN}Database connected!${NC}"
-            break
-        fi
-        echo -e "${YELLOW}Waiting for database... ($i/30)${NC}"
-        sleep 1
-    done
-    
-    # Run migrations if database is available
-    echo -e "${YELLOW}Running database migrations...${NC}"
-    gosu sail php artisan migrate --force
-    echo -e "${GREEN}Database migrations completed!${NC}"
-fi
-
-echo -e "${GREEN}Container initialization complete!${NC}"
+echo -e "${GREEN}Laravel container ready!${NC}"
 
 # Start supervisor
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
