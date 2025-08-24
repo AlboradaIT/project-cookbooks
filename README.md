@@ -1,5 +1,8 @@
-# AlboradaIT Project Cookbooks
-
+# AlboradaIT Project Cookb```bash
+# When requesting a new project from an AI agent:
+"Create a new Laravel web application following the AlboradaIT cookbook at:
+https://github.com/AlboradaIT/project-cookbooks/blob/main/laravel-web-app/cookbook.md"
+```
 This repository contains standardized project creation cookbooks for the AlboradaIT development team.
 
 ## What are Cookbooks?
