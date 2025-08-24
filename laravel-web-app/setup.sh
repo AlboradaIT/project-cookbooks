@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Laravel Docker Template Setup Script
-# Usage: ./setup.sh [project-name]
+# This script can be run standalone - it will clone the cookbook repository if needed
+# Usage: ./setup.sh [project-name] [db-name] [domain] [db-password]
 
 set -e
 
@@ -50,6 +51,31 @@ KEBAB_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9
 
 print_status "Setting up Laravel project: $PROJECT_NAME"
 
+# Detect if we're running from a cloned cookbook repository or standalone
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+TEMPLATE_DIR="$SCRIPT_DIR/.template"
+
+# If .template directory doesn't exist locally, we need to clone the repository
+if [ ! -d "$TEMPLATE_DIR" ]; then
+    print_status "Template not found locally, cloning cookbook repository..."
+    
+    # Create a unique temporary directory to avoid conflicts
+    TEMP_DIR=$(mktemp -d)
+    print_status "Using temporary directory: $TEMP_DIR"
+    
+    # Clone cookbook repository to the temporary location
+    git clone https://github.com/AlboradaIT/project-cookbooks.git "$TEMP_DIR/project-cookbooks"
+    
+    # Update template directory to point to the cloned location
+    TEMPLATE_DIR="$TEMP_DIR/project-cookbooks/laravel-web-app/.template"
+    
+    # Flag to clean up later
+    CLEANUP_TEMP=true
+else
+    print_status "Using local template directory"
+    CLEANUP_TEMP=false
+fi
+
 # Create projects directory if it doesn't exist
 mkdir -p "$PROJECTS_DIR"
 cd "$PROJECTS_DIR"
@@ -61,8 +87,16 @@ if [ -d "$KEBAB_NAME" ]; then
 fi
 
 # Copy template files
-print_status "Setting up project from local template..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+print_status "Setting up project from template..."
+
+# Check if template directory exists
+if [ ! -d "$TEMPLATE_DIR" ]; then
+    print_error "Template directory not found: $TEMPLATE_DIR"
+    if [ "$CLEANUP_TEMP" = true ]; then
+        rm -rf "$TEMP_DIR"
+    fi
+    exit 1
+fi
 
 # Create project directory
 mkdir -p "$KEBAB_NAME"
@@ -70,8 +104,8 @@ cd "$KEBAB_NAME"
 
 # Copy only the template files (much safer)
 print_status "Copying template files..."
-cp -r "$SCRIPT_DIR/.template/"* .
-cp -r "$SCRIPT_DIR/.template/".* . 2>/dev/null || true
+cp -r "$TEMPLATE_DIR/"* . 2>/dev/null || true
+cp -r "$TEMPLATE_DIR/".* . 2>/dev/null || true
 
 # Remove template files and git history (they're already copied)
 # rm -rf .template .git setup.sh setup-interactive.sh TEAM_WORKSPACE_SETUP.md AGENT_SETUP_INSTRUCTIONS.md
@@ -115,14 +149,14 @@ print_status "Password: $DB_PASSWORD"
 
 # Check if Traefik is running
 if ! docker network ls | grep -q traefik; then
-    print_warning "Traefik network not found. Setting up Traefik..."
-    
-    # Create Traefik directory and copy configuration
-    mkdir -p "$HOME/shared-services/traefik"
-    cp docker/reverse-proxy/traefik/docker-compose.yml "$HOME/shared-services/traefik/"
-    
-    print_status "Traefik configuration copied to ~/shared-services/traefik/"
-    print_status "To start Traefik: cd ~/shared-services/traefik && docker network create traefik && docker-compose up -d"
+    print_warning "Traefik network not found. You may need to set up Traefik..."
+    print_status "To create Traefik network: docker network create traefik"
+fi
+
+# Clean up temporary files if we cloned the repository
+if [ "$CLEANUP_TEMP" = true ]; then
+    print_status "Cleaning up temporary files..."
+    rm -rf "$TEMP_DIR"
 fi
 
 print_success "Project setup complete!"
