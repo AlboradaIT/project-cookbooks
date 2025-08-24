@@ -1,0 +1,89 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/runtimes/8.2/Dockerfile
+      args:
+        WWWGROUP: '${WWWGROUP}'
+        WWWUSER: '${WWWUSER}'
+    container_name: 'app'
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=${APP_ENV}
+    volumes:
+      - '.:/var/www/html'
+      - './docker/runtimes/8.2/start-container.sh:/usr/local/bin/start-container.sh'
+      - './docker/runtimes/8.2/php.ini:/usr/local/etc/php/php.ini'
+      - './docker/runtimes/8.2/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf'
+      - './docker/runtimes/8.2/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf'
+    healthcheck:
+      test: ["CMD", "php", "artisan", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+      - traefik
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: 'nginx'
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_SERVICE=app
+      - CLIENT_MAX_BODY_SIZE=${CLIENT_MAX_BODY_SIZE:-128M}
+    volumes:
+      - './:/var/www/html:ro'
+      - './docker/webserver/nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template'
+    networks:
+      - internal
+      - traefik
+    depends_on:
+      app:
+        condition: service_healthy
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.app.rule=Host(`{{APP_DOMAIN}}`)'
+      - 'traefik.http.routers.app.entrypoints=websecure'
+      - 'traefik.http.routers.app.tls=true'
+      - 'traefik.http.routers.app.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.app.loadbalancer.server.port=80'
+
+  mysql:
+    build:
+      context: .
+      dockerfile: docker/database/mysql/Dockerfile
+    container_name: 'mysql'
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - 'mysql:/var/lib/mysql'
+    ports:
+      - '${DB_PORT:-3306}:3306'
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+  traefik:
+    external: true
+
+volumes:
+  mysql:
+    driver: local

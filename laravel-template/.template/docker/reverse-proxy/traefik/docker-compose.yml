@@ -1,0 +1,37 @@
+services:
+  traefik:
+    image: "traefik:v3.2"
+    container_name: "traefik"
+    command:
+      # - "--api.insecure=true"  # Uncomment for development dashboard
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.websecure.address=:443"
+      # Production SSL configuration (comment out for development)
+      # - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      # - "--certificatesresolvers.letsencrypt.acme.dnschallenge.delayBeforeCheck=0"
+      # - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=digitalocean"
+      # - "--certificatesresolvers.letsencrypt.acme.dnschallenge.disablepropagationcheck=true"
+      # - "--certificatesResolvers.letsencrypt.acme.email=desarrollo@alboradait.com"
+      # - "--certificatesResolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443"
+      # - "8080:8080"  # Uncomment for Traefik dashboard
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    restart: unless-stopped
+    environment:
+      # Production environment variables (comment out for development)
+      # - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true

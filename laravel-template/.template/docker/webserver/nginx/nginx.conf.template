@@ -1,0 +1,70 @@
+# Enable gzip
+gzip on;
+gzip_disable "msie6";
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 6;
+gzip_types
+    text/plain
+    text/css
+    text/javascript
+    application/json
+    application/javascript
+    application/x-javascript
+    application/xml
+    application/xml+rss
+    image/svg+xml
+    text/html;
+
+server {
+    listen 80;
+
+    root /var/www/html/public;
+    index index.php index.html;
+
+    client_max_body_size ${CLIENT_MAX_BODY_SIZE};
+
+    location / {
+        # Handle Laravel routing
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /livewire/livewire.js {
+        expires off;
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ^~ /livewire {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ^~ /storage {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_pass ${APP_SERVICE}:9000;
+        fastcgi_read_timeout 300;
+        fastcgi_index index.php;
+    }
+        
+    # Deny access to .htaccess and other hidden files
+    location ~ /\. {
+        deny all;
+    }
+
+    # Deny access to sensitive files
+    location ~ \.(env|log|htpasswd|sql)$ {
+        deny all;
+    }
+
+    # Optional: Caching for static assets
+    location ~* \.(jpg|jpeg|png|gif|css|js|ico|svg|woff|woff2|ttf|eot|otf|ttc|ttf)$ {
+        expires max;
+        log_not_found off;
+    }
+}
