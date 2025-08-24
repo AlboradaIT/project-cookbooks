@@ -57,6 +57,25 @@ if [ -f "composer.json" ]; then
     gosu sail composer install --optimize-autoloader
 fi
 
+# Wait for database to be ready and run migrations
+if [ -f "artisan" ]; then
+    echo -e "${YELLOW}Waiting for database connection...${NC}"
+    # Wait up to 30 seconds for database
+    for i in {1..30}; do
+        if gosu sail php artisan migrate:status >/dev/null 2>&1; then
+            echo -e "${GREEN}Database connected!${NC}"
+            break
+        fi
+        echo -e "${YELLOW}Waiting for database... ($i/30)${NC}"
+        sleep 1
+    done
+    
+    # Run migrations if database is available
+    echo -e "${YELLOW}Running database migrations...${NC}"
+    gosu sail php artisan migrate --force
+    echo -e "${GREEN}Database migrations completed!${NC}"
+fi
+
 echo -e "${GREEN}Container initialization complete!${NC}"
 
 # Start supervisor

@@ -194,6 +194,39 @@ docker-compose exec mysql mysql -u [username] -p
 
 ## Troubleshooting
 
+### HTTPS 404 Errors
+
+If you get 404 errors when accessing https://your-domain.local:
+
+1. **Check Traefik is running**:
+   ```bash
+   docker ps | grep traefik
+   curl http://localhost:8080  # Traefik dashboard
+   ```
+
+2. **Restart both nginx and Traefik**:
+   ```bash
+   cd ~/projects/your-project
+   docker-compose restart nginx
+   cd docker/reverse-proxy/traefik && docker-compose restart traefik
+   ```
+
+3. **Verify service discovery**:
+   ```bash
+   curl -s http://localhost:8080/api/rawdata | jq '.http.routers'
+   ```
+
+### Database Session Errors
+
+If you get "Table 'database.sessions' doesn't exist" errors:
+
+```bash
+# Run database migrations (done automatically on container start)
+docker-compose exec app php artisan migrate
+```
+
+**Note**: Modern Laravel includes the sessions table in the main user migration.
+
 ### Port Conflicts
 
 If MySQL port 3306 is in use:
