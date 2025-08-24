@@ -64,20 +64,24 @@ curl -fsSL https://raw.githubusercontent.com/AlboradaIT/project-cookbooks/main/l
 
 ## Setup Script Details
 
-The `setup.sh` script handles:
+The `create-project.sh` script handles:
 
-1. **Parameter processing** - Accepts project name, database, domain, password
-2. **Directory creation** - Creates kebab-case project directory
-3. **Template copying** - Copies `.template` files safely
-4. **Environment configuration** - Updates .env with provided values
-5. **Docker Compose setup** - Processes .stub files with placeholders
-6. **Git initialization** - Creates new repository
-7. **Traefik verification** - Checks if reverse proxy is running
+1. **Repository cloning** - Clones cookbook repository to temporary location
+2. **Parameter processing** - Accepts project name, database, domain, password
+3. **Directory creation** - Creates kebab-case project directory
+4. **Template copying** - Copies `.template` files safely
+5. **Environment configuration** - Updates .env with provided values
+6. **Laravel pre-installation** - Installs Laravel using project's container image
+7. **Docker Compose setup** - Processes .stub files with placeholders
+8. **Git initialization** - Creates new repository
+9. **Cleanup** - Removes temporary files
 
 ### Script Usage
 
+The agent should execute via curl with parameters:
+
 ```bash
-./setup.sh <project-name> [db-name] [domain] [password]
+curl -fsSL https://raw.githubusercontent.com/AlboradaIT/project-cookbooks/main/laravel-web-app/create-project.sh | bash -s -- <project-name> [db-name] [domain] [password]
 ```
 
 **Parameters:**
@@ -124,17 +128,17 @@ Each project provides:
 cd ~/projects/project-directory
 docker-compose up -d
 
-# Wait for Laravel installation (first run only)
+# Laravel is already installed and ready!
 # Access via https://your-domain.local
 ```
 
-### Laravel Auto-Installation
+### Laravel Pre-Installation
 
-On first container start:
-1. Laravel is automatically installed via Composer
-2. Existing .env files are preserved and restored
-3. Application key is generated if needed
-4. Dependencies are installed
+Laravel is now pre-installed during project creation:
+1. Laravel is installed using the project's container image during setup
+2. Environment variables are configured automatically
+3. Application key is generated during installation
+4. Project is ready to start immediately
 
 ### Custom Laravel Commands
 
@@ -158,7 +162,11 @@ Dumps are saved to `storage/app/database-dumps/` and emit a `DatabaseDumpCreated
 # View logs
 docker-compose logs -f app
 
-# Laravel artisan commands
+# Laravel artisan commands (sail is available immediately!)
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan make:controller UserController
+
+# Or use docker-compose
 docker-compose exec app php artisan migrate
 docker-compose exec app php artisan make:controller UserController
 
@@ -198,7 +206,9 @@ If you get 404 errors when accessing https://your-domain.local:
 If you get "Table 'database.sessions' doesn't exist" errors:
 
 ```bash
-# Run database migrations (done automatically on container start)
+# Run database migrations
+./vendor/bin/sail artisan migrate
+# Or using docker-compose
 docker-compose exec app php artisan migrate
 ```
 
@@ -231,18 +241,18 @@ docker-compose exec app chown -R sail:sail storage bootstrap/cache
 
 ### Environment Issues
 
-If .env configuration is lost:
-- The start-container script automatically preserves and restores .env files
-- Check `.env.backup` if issues occur during Laravel installation
+Laravel is pre-installed during project creation with proper environment configuration:
+- Environment variables are set up automatically during project creation
+- No .env backup/restore needed as Laravel is installed after .env configuration
 
 ## GitHub Repository Creation
 
-### Automatic (via setup script)
+### Automatic (via create-project script)
 
-The setup script can create repositories if GitHub CLI is configured:
+The create-project script can create repositories if GitHub CLI is configured:
 ```bash
 gh auth login  # One-time setup
-# Script will offer repository creation option
+# After project creation, manually create repository if desired
 ```
 
 ### Manual
@@ -264,6 +274,7 @@ gh repo create AlboradaIT/project-name --public --source=. --push
 - Script handles technical naming automatically
 
 ### Environment Management
+- Environment variables are configured automatically during project creation
 - Never commit .env files
 - Use unique database passwords per project
 - Keep credentials secure
@@ -273,6 +284,8 @@ gh repo create AlboradaIT/project-name --public --source=. --push
 - Monitor disk usage: `docker system df`
 
 ### Development
+- Laravel is ready immediately after project creation
+- Use sail commands for easier Laravel management: `./vendor/bin/sail artisan`
 - Use migrations for database changes
 - Regular backups with `db:dump` command
 - Follow Laravel best practices
